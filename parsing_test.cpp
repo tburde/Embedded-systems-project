@@ -1,9 +1,6 @@
 #include "mbed.h"
 #include <string.h>
 #include <ctype.h>
-//#include <string>
-
-//using namespace std;
 
 #define DEBUG
 
@@ -66,7 +63,8 @@ static agriProtocol data;
 
 const unsigned int max_msg = 128;
 
-agriData resolveString(char *s)
+
+agriData resolveString(char *s) //convert string to enum for processing
 {
 #ifdef BaseStation
     if(strcmp(s,"UUID") == 0) {
@@ -97,15 +95,15 @@ agriData resolveString(char *s)
     }
 #endif
     //to be added
-    
+
     return ERRR;
 }
 
-void reset(void)
+void reset(void) //reset pointers
 {
     command_ptr = NULL;
     val_ptr = NULL;
-    //command_type = NONE ;
+
 }
 
 void parse(char *p ) //Parse data strcture
@@ -200,7 +198,6 @@ void receive(void) //recived data from UART for testing
 
     switch(c) {
         case '\r':   // end of text
-            //input [input_pos] = ;
 #ifdef DEBUG
             usb.printf("\r\n Recv: %s", input);
             usb.printf("\r\n");
