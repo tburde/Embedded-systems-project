@@ -1,9 +1,9 @@
 #include "mbed.h"
 #include <string.h>
 #include <ctype.h>
-#include <string>
+//#include <string>
 
-using namespace std;
+//using namespace std;
 
 #define DEBUG
 
@@ -12,9 +12,9 @@ using namespace std;
 
 #ifdef SensorNode
 
-    #define TEMPSENS
-    #define MOISSENS
-    
+//#define TEMPSENS
+//#define MOISSENS
+
 #endif
 
 Serial usb(USBTX, USBRX);
@@ -30,12 +30,13 @@ enum agriCmd {
 
 
 enum agriData {
+    ERRR,
     UUID,
     UTCS,
     PWRS,
-    LBAT, 
+    LBAT,
     STMP,
-    ATMP, 
+    ATMP,
     MOIS,
     LIGT,
     PHLV,
@@ -50,35 +51,54 @@ struct agriProtocol {
     uint8_t LBAT;
     uint8_t PWRS;
     uint8_t PDAT;
+    double STMP;
     //To be added
-    
-    
+
+
 };
 
 //Variables
 
-static char *command_ptr,               
-            *val_ptr;  
-                          
+static char *command_ptr,
+       *val_ptr;
+
 static agriProtocol data;
 
 const unsigned int max_msg = 128;
 
-agriData resolveString(char *p)
+agriData resolveString(char *s)
 {
 #ifdef BaseStation
-       if(strcmp(p,"UUID") == 0){} return UUID;
-       if(strcmp(p,"UTCS") == 0){} return UTCS;
-       if(strcmp(p,"PWRS") == 0){} return PWRS;
-       if(strcmp(p,"LBAT") == 0){} return LBAT;
-       if(strcmp(p,"STMP") == 0){} return STMP;
-       if(strcmp(p,"ATMP") == 0){} return ATMP;
-       if(strcmp(p,"MOIS") == 0){} return MOIS;
+    if(strcmp(s,"UUID") == 0) {
+        return UUID;
+    }
+    if(strcmp(s,"UTCS") == 0) {
+        return UTCS;
+    }
+    if(strcmp(s,"PWRS") == 0) {
+        return PWRS;
+    }
+    if(strcmp(s,"LBAT") == 0) {
+        return LBAT;
+    }
+    if(strcmp(s,"STMP") == 0) {
+        return STMP;
+    }
+    if(strcmp(s,"ATMP") == 0) {
+        return ATMP;
+    }
+    if(strcmp(s,"MOIS") == 0) {
+        return MOIS;
+    }
 #endif
-#ifdef SensorNode       
-       if(strcmp(p,"PDAT") == 0){} return PDAT;
+#ifdef SensorNode
+    if(strcmp(s,"PDAT") == 0) {
+        return PDAT;
+    }
 #endif
-       //to be added
+    //to be added
+    
+    return ERRR;
 }
 
 void reset(void)
@@ -91,69 +111,80 @@ void reset(void)
 void parse(char *p ) //Parse data strcture
 {
     char command[5];
-    
-    
+
+
 #ifdef DEBUG
     usb.printf("Parsing\r\n");
 #endif
 
     reset();
-    
-    for(int i=0;i<strlen(p);i++){
+
+    for(int i=0; i<strlen(p); i++) {
         p[i] = toupper(p[i]);
     }
-    
+
 //First extraction
-    
+
     command_ptr = strtok(p, " ");
-    
-    while(command_ptr != NULL)
-    {
-        
+
+    while(command_ptr != NULL) {
+
         strncpy(command, command_ptr, 4);
         command[4] = '\0';
-        switch (resolveString(command)){
+        switch (resolveString(command)) {
 #ifdef BaseStation
-        case UUID:
-            val_ptr = command_ptr + 4;
-            data.UUID =  stoi(val_ptr)   
-        break;
-        
-        case UTCS:
-            val_ptr = command_ptr + 4;
-            data.UTCS = stoi(val_ptr)
-        break;
-        
-        case TEMP:
-            val_ptr = command_ptr + 4;
-            data.TEMP = stof(val_ptr)
-        break;   
-#endif                  
-#ifdef SensorNode
-        case PDAT:
-            val_ptr = command_ptr + 4;
-            data.PDAT = stoi(val_ptr)
-        break;
-#endif 
-
-    
-        default:
-            
-        break;
-        }
-        
-    #ifdef DEBUG
-                usb.printf("COMMAND: %s \r\n",command);
-                usb.printf("Processed: %s \r\n", val_ptr);
-    #endif
-    
-    command_ptr = strtok(NULL, " ");
-
-    } 
-    
-    
+            case UUID:
+                val_ptr = command_ptr + 4;
+                data.UUID =  atoi(val_ptr);
 #ifdef DEBUG
-        
+                usb.printf("UUID: %d \r\n",data.UUID*3);
+#endif
+                break;
+
+            case UTCS:
+                val_ptr = command_ptr + 4;
+                data.UTCS = atoi(val_ptr);
+#ifdef DEBUG
+                usb.printf("UTCS: %d \r\n",data.UTCS*2);
+#endif
+                break;
+
+            case STMP:
+                val_ptr = command_ptr + 4;
+                data.STMP = atof(val_ptr);
+#ifdef DEBUG
+                usb.printf("SOILTEMP: %4.2f \r\n",data.STMP*2);
+#endif
+                break;
+#endif
+#ifdef SensorNode
+            case PDAT:
+                val_ptr = command_ptr + 4;
+                data.PDAT = atoi(val_ptr);
+                break;
+#endif
+
+
+            default:
+                memset(command, 0, 5);
+                val_ptr = NULL;
+                break;
+        }
+
+#ifdef DEBUG
+        // usb.printf("COMMAND: %s \r\n",command);
+        // usb.printf("Processed: %s \r\n", val_ptr);
+#endif
+
+        memset(command, 0, 5);
+        val_ptr = NULL;
+        command_ptr = strtok(NULL, " ");
+
+    }
+
+
+#ifdef DEBUG
+
     usb.printf("Success\r\n");
 #endif
 
